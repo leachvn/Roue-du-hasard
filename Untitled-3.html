@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roue de la Fortune</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            overflow: hidden; /* Empêche le défilement de la page lors de l'animation des confettis */
+        }
+
+        h1 {
+            margin-top: 50px;
+        }
+
+        .wheel-container {
+            margin: 100px auto;
+            position: relative;
+            width: 400px;
+            height: 400px;
+        }
+
+        /* Le design de la roue */
+        .wheel {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            border-radius: 50%;
+            border: 10px solid #333;
+            background: conic-gradient(
+                #FFD700 0% 10%, 
+                #FF4500 10% 20%, 
+                #32CD32 20% 30%, 
+                #1E90FF 30% 40%, 
+                #FF6347 40% 50%, 
+                #FFD700 50% 60%, 
+                #FF4500 60% 70%, 
+                #32CD32 70% 80%, 
+                #1E90FF 80% 90%, 
+                #FF6347 90% 100%
+            );
+            transform: rotate(0deg);
+            transition: transform 5s ease-out;
+        }
+
+        /* Triangle indicateur pour pointer le segment gagnant */
+        .pointer {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-bottom: 40px solid #333;
+        }
+
+        #spin-btn {
+            margin-top: 50px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        #spin-btn:disabled {
+            background-color: grey;
+            cursor: not-allowed;
+        }
+
+        #timer {
+            margin-top: 20px;
+            font-size: 18px;
+            color: red;
+        }
+
+        #result {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            font-weight: bold;
+            color: #333;
+            text-shadow: 2px 2px 5px rgba(255, 215, 0, 1), 0 0 25px rgba(255, 255, 255, 1); /* Effet de fête */
+            opacity: 0; /* Démarre invisible */
+            animation: celebrate 1s forwards; /* Animation */
+        }
+
+        @keyframes celebrate {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2); /* Zoom avant */
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: red; /* Couleur par défaut, peut changer */
+            opacity: 0.8;
+            pointer-events: none; /* Empêche l'interaction avec les confettis */
+            animation: fall 3s forwards; /* Durée de la chute */
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(720deg); /* Fait tomber les confettis en bas */
+            }
+        }
+
+        /* Style du minuteur en bas de page */
+        #countdown {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 22px;
+            color: #333;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>Roue de la Fortune</h1>
+    <div class="wheel-container">
+        <!-- Marqueur qui indique le gagnant -->
+        <div class="pointer"></div>
+        <div class="wheel" id="wheel"></div>
+        <div id="result"></div> <!-- Résultat au milieu de la roue -->
+    </div>
+    <button id="spin-btn" disabled>Tourner la roue</button>
+    <div id="timer"></div>
+    <div id="countdown"></div> <!-- Minuteur ajouté ici -->
+
+    <script>
+        const spinButton = document.getElementById('spin-btn');
+        const wheel = document.getElementById('wheel');
+        const timerDiv = document.getElementById('timer');
+        const resultDiv = document.getElementById('result');
+        const countdownDiv = document.getElementById('countdown'); // Récupération du minuteur
+
+        // Les segments sont invisibles pour l'utilisateur
+        const segments = [1456, 1658, 1992, 5552, 55650, 29621, 5651, 252154, 599221, 455411];
+
+        // Définir la date et l'heure de départ
+        const startDate = new Date('2024-10-18T15:00:00').getTime(); // Date mise à jour
+
+        // Mettre à jour le compte à rebours
+        const countdownInterval = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = startDate - now;
+
+            // Calculer jours, heures, minutes et secondes
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            timerDiv.innerHTML = `La roue sera disponible dans ${days}j ${hours}h ${minutes}m ${seconds}s`;
+            countdownDiv.innerHTML = `Temps restant : ${days}j ${hours}h ${minutes}m ${seconds}s`; // Affiche le minuteur
+
+            // Quand la date est atteinte, on active le bouton
+            if (distance < 0) {
+                clearInterval(countdownInterval);
+                timerDiv.innerHTML = 'La roue est disponible maintenant !';
+                spinButton.disabled = false;
+                countdownDiv.style.display = 'none'; // Masquer le minuteur après le lancement
+            }
+        }, 1000);
+
+        // Fonction pour créer des confettis
+        function createConfetti() {
+            const colors = ['#FF5733', '#33FF57', '#3357FF', '#F1C40F', '#8E44AD']; // Différentes couleurs
+            const confetti = document.createElement('div');
+            confetti.classList.add('confetti');
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]; // Couleur aléatoire
+
+            // Positionnement aléatoire des confettis
+            confetti.style.left = Math.random() * window.innerWidth + 'px'; 
+            confetti.style.top = '0px'; 
+
+            document.body.appendChild(confetti);
+
+            // Supprimer le confetti après l'animation
+            confetti.addEventListener('animationend', () => {
+                confetti.remove();
+            });
+        }
+
+        // Fonction pour faire tourner la roue une seule fois
+        spinButton.addEventListener('click', () => {
+            const randomDegree = Math.floor(Math.random() * 3600 + 360); // Rotation aléatoire
+            const rotation = randomDegree % 360; // Rotation réelle (après tours complets)
+            const segmentIndex = Math.floor(rotation / (360 / segments.length)); // Trouver le segment gagnant
+
+            // Faire tourner la roue
+            wheel.style.transform = `rotate(${randomDegree}deg)`;
+
+            // Désactiver le bouton après le clic
+            spinButton.disabled = true;
+
+            // Afficher le résultat après la fin de l'animation
+            setTimeout(() => {
+                const result = segments[segments.length - 1 - segmentIndex];
+                resultDiv.innerHTML = `Résultat : ${result}`;
+                resultDiv.style.opacity = 1; // Rendre le résultat visible
+
+                // Créer des confettis
+                for (let i = 0; i < 100; i++) { // Nombre de confettis à créer
+                    createConfetti();
+                }
+            }, 5000);
+        });
+    </script>
+</body>
+</html>
